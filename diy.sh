@@ -54,3 +54,33 @@ grep -q 'nikki-update' /etc/crontabs/root || \
 exit 0
 EOF
 chmod +x "$BASE/etc/uci-defaults/99-nikki-feed"
+
+# ---------------------------------------------------------------------------
+# EasyTier: pinned to 2.6.4 (commit 8428a89d).
+#
+# This is the exact build already running on the HK gateway (10.0.0.8) and the
+# NAS (10.0.0.9). Newer releases are deliberately NOT used. The APKs are
+# shipped inside the image and installed once, on first boot.
+# ---------------------------------------------------------------------------
+EZT_VER="2.6.4"
+EZT_URL="https://github.com/EasyTier/luci-app-easytier/releases/download/v${EZT_VER}/EasyTier-v${EZT_VER}-x86_64-SNAPSHOT.zip"
+EZT_DIR="$BASE/etc/easytier-pkgs"
+
+mkdir -p "$EZT_DIR" /tmp/ezt
+wget -q -O /tmp/ezt.zip "$EZT_URL"
+unzip -oq /tmp/ezt.zip -d /tmp/ezt
+cp -f "/tmp/ezt/easytier-noweb-${EZT_VER}.apk"        "$EZT_DIR/"
+cp -f "/tmp/ezt/luci-app-easytier-${EZT_VER}-r1.apk"  "$EZT_DIR/"
+cp -f /tmp/ezt/luci-i18n-easytier-zh-cn-*.apk         "$EZT_DIR/luci-i18n-easytier-zh-cn.apk"
+rm -rf /tmp/ezt /tmp/ezt.zip
+
+cat > "$BASE/etc/uci-defaults/98-easytier-install" <<'EOF'
+#!/bin/sh
+# Install the pinned EasyTier stack shipped in the image (2.6.4 / 8428a89d).
+if [ -d /etc/easytier-pkgs ]; then
+	apk add --no-network --allow-untrusted /etc/easytier-pkgs/*.apk >/tmp/easytier-install.log 2>&1
+	rm -rf /etc/easytier-pkgs
+fi
+exit 0
+EOF
+chmod +x "$BASE/etc/uci-defaults/98-easytier-install"
